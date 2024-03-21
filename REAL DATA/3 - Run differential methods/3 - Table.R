@@ -118,7 +118,65 @@ DF_merged = merge(DF_merged, satuRn, by = c("Gene_id", "Cluster_id"), all.x = TR
 head(DF_merged)
 tail(DF_merged)
 
-rm(DF_SatuRn)
+rm(DF_SatuRn); rm(satuRn)
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+# satuRn - SC:
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+# load satuRn 02_results:
+load("02_results/SatuRnSCsampleDesign.RData")
+
+n = length(DF_SatuRn)
+
+satuRn = list()
+for(cl in 1:n){
+  res = DF_SatuRn[[cl]]
+  cluster = res$cluster_id[1]
+  
+  tr_names = res$transcript_id
+  tr_names = strsplit(tr_names, "-")
+  tr_names = sapply(tr_names, function(x){ x[[1]]})
+  
+  res$empirical_pval[is.na(res$empirical_pval)] = 1
+  res_by_tr = split(res$empirical_pval, tr_names)
+  min_p_val = sapply(res_by_tr, min, na.rm = TRUE)
+  
+  qval = p.adjust(min_p_val, method = "BH")
+  
+  satuRn[[cl]] = data.frame(Gene_id = names(min_p_val),
+                            Cluster_id = cluster,
+                            satuRn_SC = min_p_val)
+}
+satuRn = do.call(rbind, satuRn)
+
+DF_merged = merge(DF_merged, satuRn, by = c("Gene_id", "Cluster_id"), all.x = TRUE)
+head(DF_merged)
+tail(DF_merged)
+
+rm(DF_SatuRn); rm(satuRn)
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+# BRIE2:
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+# load DEXSeq SUA 02_results:
+load("02_results/BRIE2_USA.RData")
+head(RES)
+RES = RES[,-3]
+head(RES)
+colnames(RES) = c("Gene_id", "BRIE2", "Cluster_id")
+
+RES$Cluster_id = ifelse(RES$Cluster_id == "Immature_CPNs", "Immature CPNs", RES$Cluster_id)
+RES$Cluster_id = ifelse(RES$Cluster_id == "Immature_PNs", "Immature PNs", RES$Cluster_id)
+
+table(RES$Cluster_id)
+table(DF_merged$Cluster_id)
+
+DF_merged = merge(DF_merged, RES, by = c("Gene_id", "Cluster_id"), all.x = TRUE)
+head(DF_merged)
+
+table(DF_merged$Cluster_id)
+
+rm(RES)
 
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
 # top results:
@@ -128,13 +186,14 @@ DF_merged$Gene_id = substr(DF_merged$Gene_id, 1, 15)
 
 DF_merged[is.na(DF_merged)] = 1
 
-methods = c(# "BRIE2",
+methods = c("BRIE2",
   "DEXSeq",
   "DifferentialRegulation",
   "DifferentialRegulation_Wald",
   "DRIMSeq",
   "eisaR",
-  "satuRn")
+  "satuRn",
+  "satuRn_SC")
 
 n_top = 200
 
@@ -179,12 +238,9 @@ genes_in_DF
 # how many we'd expect at random
 expected_n = genes_in_DF/nrow(DF_merged) * n_top * length(clusters)
 expected_n
-#  BRAIN_UP CHROID_PLEXUS_UP 
-#  21.582457         3.288159 
 
 found = found[,order(found[5,], decreasing = TRUE)]
 
-#found = cbind(found, round(expected_n,2))
 found
 
 library(xtable)
@@ -192,15 +248,82 @@ xtable(found, digits = 0)
 
 \begin{table}[ht]
 \centering
-\begin{tabular}{rrrrrrr}
+\begin{tabular}{rrrrrrrrr}
 \hline
-& DifferentialRegulation & DifferentialRegulation\_Wald & eisaR & satuRn & DEXSeq & DRIMSeq \\ 
+& satuRn\_SC & DifferentialRegulation & DifferentialRegulation\_Wald & BRIE2 & eisaR & satuRn & DEXSeq & DRIMSeq \\ 
 \hline
-brain only detected & 3 & 3 & 0 & 0 & 0 & 0 \\ 
-cerebral cortex elevated & 7 & 7 & 0 & 1 & 0 & 0 \\ 
-excitatory neurons & 2 & 1 & 0 & 0 & 0 & 0 \\ 
-PGP1 & 2 & 2 & 1 & 0 & 0 & 0 \\ 
-ANY & 14 & 13 & 1 & 1 & 0 & 0 \\ 
+brain only detected & 8 & 3 & 3 & 0 & 0 & 0 & 0 & 0 \\ 
+cerebral cortex elevated & 8 & 7 & 7 & 0 & 0 & 1 & 0 & 0 \\ 
+excitatory neurons & 3 & 2 & 1 & 1 & 0 & 0 & 0 & 0 \\ 
+PGP1 & 0 & 2 & 2 & 0 & 1 & 0 & 0 & 0 \\ 
+overall & 17 & 14 & 13 & 1 & 1 & 1 & 0 & 0 \\ 
+\hline
+\end{tabular}
+\end{table}
+
+
+n_top = 200
+
+clusters = unique(DF_merged$Cluster_id); clusters
+
+top_xx = lapply(clusters, function(cluster){
+  DF_one_cluster = DF_merged[DF_merged$Cluster_id == cluster, ]
+  
+  res = lapply(methods, function(method){
+    sel = which(colnames(DF_one_cluster) == method )
+    if(method == "DifferentialRegulation"){
+      # resolve ties in DifferentialRegulation output, based on the result of DifferentialRegulation Wald test:
+      sel_wald = which(colnames(DF_one_cluster) == "DifferentialRegulation_Wald" )
+      ordering = order(DF_one_cluster[,sel], DF_one_cluster[,sel_wald])
+    }else{
+      ordering = order(DF_one_cluster[,sel])
+    }
+    genes = DF_one_cluster$Gene_id[ ordering ]
+    genes[1:n_top]
+  })
+  res = as.data.frame(do.call(cbind, res))
+  colnames(res) = methods
+  res$cluster = cluster
+  res
+})
+top_xx = do.call(rbind,top_xx)
+
+found = round(apply(top_xx[,1:length(methods)],2, function(xx){
+  sapply(GENES, function(gg){
+    sum(xx %in% gg)
+  })
+}))
+found
+
+genes_in_DF = sapply(GENES, function(x){
+  sum(sapply(x, function(y){
+    sum(y == DF_merged$Gene_id)
+  }))
+})/length(clusters)
+genes_in_DF
+
+# how many we'd expect at random
+expected_n = genes_in_DF/nrow(DF_merged) * n_top * length(clusters)
+expected_n
+
+found = found[,order(found[5,], decreasing = TRUE)]
+
+found
+
+library(xtable)
+xtable(found, digits = 0)
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrrrrrr}
+\hline
+& satuRn\_SC & DifferentialRegulation & DifferentialRegulation\_Wald & BRIE2 & eisaR & satuRn & DEXSeq & DRIMSeq \\ 
+\hline
+brain only detected & 8 & 3 & 3 & 0 & 0 & 0 & 0 & 0 \\ 
+cerebral cortex elevated & 8 & 7 & 7 & 0 & 0 & 1 & 0 & 0 \\ 
+excitatory neurons & 3 & 2 & 1 & 1 & 0 & 0 & 0 & 0 \\ 
+PGP1 & 0 & 2 & 2 & 0 & 1 & 0 & 0 & 0 \\ 
+overall & 17 & 14 & 13 & 1 & 1 & 1 & 0 & 0 \\ 
 \hline
 \end{tabular}
 \end{table}

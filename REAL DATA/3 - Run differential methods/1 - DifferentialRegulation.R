@@ -6,6 +6,8 @@ R
 
 rm(list = ls())
 
+seed_123 = FALSE
+
 TIMES = system.time({
   library(DifferentialRegulation)
   library(SingleCellExperiment)
@@ -67,11 +69,20 @@ TIMES = system.time({
   rm(sce); rm(EC_list)
   
   # EC-based test:
-  set.seed(16961)
+  if(seed_123){
+    set.seed(123)
+  }else{
+    set.seed(169612)
+  }
   results_EC = DifferentialRegulation(PB_counts,
-                                      n_cores = 6)
+                                      n_cores = 6,
+                                      trace = TRUE)
 })
 
-full_name = file.path("../02_results/DifferentialRegulation.RData")
+if(seed_123){
+  full_name = file.path("../02_results/DifferentialRegulation_WITH_trace_seed123.RData")
+}else{
+  full_name = file.path("../02_results/DifferentialRegulation_WITH_trace.RData")
+}
 
 save(results_EC, TIMES, file = full_name)
