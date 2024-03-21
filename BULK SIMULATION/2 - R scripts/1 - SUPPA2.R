@@ -21,22 +21,27 @@ rm(list =ls())
 # choose directories:
 ############################################################
 # TRANSCRIPT ESTIMATED COUNTS:
+# TRANSCRIPT ESTIMATED COUNTS:
 directories = c("de0_ds0_dr0",
                 "de0_ds0_dr2000",
                 "de2000_ds0_dr2000",
-                "de0_ds2000_dr2000")
+                "de0_ds2000_dr2000",
+                "de2000_ds0_dr2000_logFC_6",
+                "de2000_ds0_dr2000_logFC_9")
 
 directories_results = c("NULL",
                         "DR",
                         "DR + DGE",
-                        "DR + DAS")
+                        "DR + DAS",
+                        "log2FC_6",
+                        "log2FC_9")
 setwd("/home/Shared/simone/DifferentialRegulation")
 ############################################################
 # load data:
 ############################################################
 library(data.table); library(tximport)
 TIME = list()
-for(type in 1:4){
+for(type in 1:6){
   TIME[[type]] = system.time({
     set.seed(169612)
     data_dir = file.path("1 - data", directories[type],
@@ -90,6 +95,7 @@ name = paste0(name, ".RData")
 name = paste0("TIME_R1_", name)
 save(TIME, file = file.path("3 - results",name))
 
+# remove quotes " " from file:
 scp -r  /Users/peiyingcai/Desktop/"3 - results"/DR/expression_file_Cond_A.csv  peicai@imlssherborne:/home/Shared/simone/DifferentialRegulation/"3 - results"/DR/expression_file_Cond_A.csv
 scp -r  /Users/peiyingcai/Desktop/"3 - results"/DR/expression_file_Cond_B.csv  peicai@imlssherborne:/home/Shared/simone/DifferentialRegulation/"3 - results"/DR/expression_file_Cond_B.csv
 scp -r  /Users/peiyingcai/Desktop/"3 - results"/NULL/expression_file_Cond_A.csv  peicai@imlssherborne:/home/Shared/simone/DifferentialRegulation/"3 - results"/NULL/expression_file_Cond_A.csv
@@ -98,21 +104,10 @@ scp -r  /Users/peiyingcai/Desktop/"3 - results"/"DR + DAS"/expression_file_Cond_
 scp -r  /Users/peiyingcai/Desktop/"3 - results"/"DR + DAS"/expression_file_Cond_A.csv  peicai@imlssherborne:/home/Shared/simone/DifferentialRegulation/"3 - results"/"DR + DAS"/expression_file_Cond_A.csv
 scp -r  /Users/peiyingcai/Desktop/"3 - results"/"DR + DGE"/expression_file_Cond_A.csv  peicai@imlssherborne:/home/Shared/simone/DifferentialRegulation/"3 - results"/"DR + DGE"/expression_file_Cond_A.csv
 scp -r  /Users/peiyingcai/Desktop/"3 - results"/"DR + DGE"/expression_file_Cond_B.csv  peicai@imlssherborne:/home/Shared/simone/DifferentialRegulation/"3 - results"/"DR + DGE"/expression_file_Cond_B.csv
-
-
-########## At the moment the PSI per transcript isoform is calculated in the following way:
-python3.11 /home/Shared/simone/DifferentialRegulation/software/SUPPA-2.3/suppa.py \
-psiPerIsoform -g $gtf -e expression_file_Cond_A.csv -o psi_A
-
-python3.11 /home/Shared/simone/DifferentialRegulation/software/SUPPA-2.3/suppa.py \
-psiPerIsoform -g $gtf -e expression_file_Cond_B.csv -o psi_B
-
-########## Differential splicing:
-python3.11 $suppa/suppa.py \
-diffSplice -m empirical -gc -i events.ioi \
--p psi_A_isoform.psi psi_B_isoform.psi \
--e expression_file_Cond_A.csv expression_file_Cond_B.csv \
--o DTU_OUTPUT
+scp -r  /Users/peiyingcai/Desktop/"3 - results"/log2FC_6/expression_file_Cond_A.csv  @imlssherborne:/home/Shared/simone/DifferentialRegulation/"3 - results"/log2FC_6/expression_file_Cond_A.csv
+scp -r  /Users/peiyingcai/Desktop/"3 - results"/log2FC_6/expression_file_Cond_B.csv  peicai@imlssherborne:/home/Shared/simone/DifferentialRegulation/"3 - results"/log2FC_6/expression_file_Cond_B.csv
+scp -r  /Users/peiyingcai/Desktop/"3 - results"/log2FC_9/expression_file_Cond_A.csv  @imlssherborne:/home/Shared/simone/DifferentialRegulation/"3 - results"/log2FC_9/expression_file_Cond_A.csv
+scp -r  /Users/peiyingcai/Desktop/"3 - results"/log2FC_9/expression_file_Cond_B.csv  peicai@imlssherborne:/home/Shared/simone/DifferentialRegulation/"3 - results"/log2FC_9/expression_file_Cond_B.csv
 
 ############################################################
 # 'NULL':
@@ -252,12 +247,77 @@ diffSplice -m empirical -gc -i /home/Shared/simone/DifferentialRegulation/'3 - r
 # SUPPA2 includes an option to correct for multiple testing using the Benjamini-Hochberg method across all events
 # from the same gene, as they cannot be considered to be entirely independent of each other, for which the false discovery rate (FDR) cut-off can be given as input.
 
-# -gc, --gene-correction
-# Boolean. If True, SUPPA correct the p-values by gene. (Default: False).
+
+############################################################
+# log2FC_6:
+############################################################
+########## At the moment the PSI per transcript isoform is calculated in the following way:
+time python3.11 /home/Shared/simone/DifferentialRegulation/software/SUPPA/suppa.py \
+psiPerIsoform -g /home/Shared/simone/DifferentialRegulation/'1 - data'/gencode.v41.annotation.protein_coding.expanded.gtf \
+-e /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_6/expression_file_Cond_A.csv \
+-o /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_6/psi_A
+
+# real    0m51.033s
+# user    0m43.843s
+# sys     0m12.235s
+
+time python3.11 /home/Shared/simone/DifferentialRegulation/software/SUPPA/suppa.py \
+psiPerIsoform -g /home/Shared/simone/DifferentialRegulation/'1 - data'/gencode.v41.annotation.protein_coding.expanded.gtf \
+-e /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_6/expression_file_Cond_B.csv \
+-o /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_6/psi_B
+
+# real    0m56.594s
+# user    0m42.782s
+# sys     0m12.119s
+
+########## Differential splicing:
+time python3.11 /home/Shared/simone/DifferentialRegulation/software/SUPPA/suppa.py \
+diffSplice -m empirical -gc -i /home/Shared/simone/DifferentialRegulation/'3 - results'/events.ioi \
+-p /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_6/psi_A_isoform.psi /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_6/psi_B_isoform.psi \
+-e /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_6/expression_file_Cond_A.csv /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_6/expression_file_Cond_B.csv \
+-o /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_6/DTU_OUTPUT
+
+# real    18m47.332s
+# user    18m44.494s
+# sys     0m13.685s
+
+############################################################
+# log2FC_9:
+############################################################
+########## At the moment the PSI per transcript isoform is calculated in the following way:
+time python3.11 /home/Shared/simone/DifferentialRegulation/software/SUPPA/suppa.py \
+psiPerIsoform -g /home/Shared/simone/DifferentialRegulation/'1 - data'/gencode.v41.annotation.protein_coding.expanded.gtf \
+-e /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_9/expression_file_Cond_A.csv \
+-o /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_9/psi_A
+
+# real    0m55.059s
+# user    0m46.913s
+# sys     0m11.034s
+
+time python3.11 /home/Shared/simone/DifferentialRegulation/software/SUPPA/suppa.py \
+psiPerIsoform -g /home/Shared/simone/DifferentialRegulation/'1 - data'/gencode.v41.annotation.protein_coding.expanded.gtf \
+-e /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_9/expression_file_Cond_B.csv \
+-o /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_9/psi_B
+
+# real    1m1.416s
+# user    0m47.244s
+# sys     0m12.888s
+
+########## Differential splicing:
+time python3.11 /home/Shared/simone/DifferentialRegulation/software/SUPPA/suppa.py \
+diffSplice -m empirical -gc -i /home/Shared/simone/DifferentialRegulation/'3 - results'/events.ioi \
+-p /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_9/psi_A_isoform.psi /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_9/psi_B_isoform.psi \
+-e /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_9/expression_file_Cond_A.csv /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_9/expression_file_Cond_B.csv \
+-o /home/Shared/simone/DifferentialRegulation/'3 - results'/log2FC_9/DTU_OUTPUT
+
+# real    17m41.559s
+# user    17m38.322s
+# sys     0m14.599s
+
 ########## Sort results in R:
 # DTU with transcripts:
 # in R:
-alias R=‘R_LIBS=/home/stiber/R/x86_64-pc-linux-gnu-library/4.3 /home/Shared/simone/DifferentialRegulation/software/R-4.3.0/bin/R’
+alias R='R_LIBS=/home/stiber/R/x86_64-pc-linux-gnu-library/4.3 /home/Shared/simone/DifferentialRegulation/software/R-4.3.0/bin/R'
 
 R
 rm(list =ls())
@@ -269,18 +329,23 @@ rm(list =ls())
 directories = c("de0_ds0_dr0",
                 "de0_ds0_dr2000",
                 "de2000_ds0_dr2000",
-                "de0_ds2000_dr2000")
+                "de0_ds2000_dr2000",
+                "de2000_ds0_dr2000_logFC_6",
+                "de2000_ds0_dr2000_logFC_9")
 
 directories_results = c("NULL",
                         "DR",
                         "DR + DGE",
-                        "DR + DAS")
+                        "DR + DAS",
+                        "log2FC_6",
+                        "log2FC_9")
+
 setwd("/home/Shared/simone/DifferentialRegulation")
 ############################################################
 # load data:
 ############################################################
 library(data.table); library(tximport)
-for(type in 1:4){
+for(type in 1:6){
   set.seed(169612)
   data_dir = file.path("3 - results", directories_results[type],
                        "DTU_OUTPUT.dpsi")
@@ -323,4 +388,9 @@ TIME[[2]] = c(39.662, 54.453, 55.122, 1030.645)
 TIME[[3]] = c(39.662, 52.251, 52.291, 1093.924)
 ## DR + DAS
 TIME[[4]] = c(39.662, 58.838, 53.862, 953.522)
+## log2FC_6
+TIME[[5]] = c(39.662, 51.033, 56.594, 1127.332)
+## log2FC_9
+TIME[[6]] = c(39.662, 55.059, 61.416, 1061.559)
+
 save(TIME, file = file.path("3 - results","TIME_Py2_SUPPA2.RData"))

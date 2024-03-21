@@ -16,26 +16,16 @@ burn_in = N_MCMC/4
 # choose directories:
 ############################################################
 # TRANSCRIPT ESTIMATED COUNTS:
-directories = c("de0_ds0_dr0",
-                "de0_ds0_dr2000",
-                "de2000_ds0_dr2000",
-                "de0_ds2000_dr2000",
-                "de2000_ds0_dr2000_logFC_6",
-                "de2000_ds0_dr2000_logFC_9")
+directories = c("de0_ds0_dr2000_drbatch2000")
 
-directories_results = c("NULL",
-                        "DR",
-                        "DR + DGE",
-                        "DR + DAS",
-                        "log2FC_6",
-                        "log2FC_9")
+directories_results = c("batch")
 
 ############################################################
 # load data:
 ############################################################
 library(tximport)
 TIME = list()
-for(type in 1:6){
+for(type in 1:1){
   TIME[[type]] = system.time({
     set.seed(169612)
     

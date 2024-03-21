@@ -12,12 +12,16 @@ rm(list =ls())
 directories = c("de0_ds0_dr0",
                 "de0_ds0_dr2000",
                 "de2000_ds0_dr2000",
-                "de0_ds2000_dr2000")
+                "de0_ds2000_dr2000",
+                "de2000_ds0_dr2000_logFC_6",
+                "de2000_ds0_dr2000_logFC_9")
 
 directories_results = c("NULL",
                         "DR",
                         "DR + DGE",
-                        "DR + DAS")
+                        "DR + DAS",
+                        "log2FC_6",
+                        "log2FC_9")
 
 ############################################################
 # load data:
@@ -25,81 +29,81 @@ directories_results = c("NULL",
 library(tximport)
 library(DRIMSeq)
 TIME = list()
-for(type in 1:4){
+for(type in 1:6){
   TIME[[type]] = system.time({
-  set.seed(169612)
-  
-  data_dir = file.path("1 - data", directories[type],
-                       "2_quants/salmon" )
-  
-  sample_names = paste0("sample", seq_len(6))
-  quant_files = file.path(data_dir, sample_names, "quant.sf")
-  file.exists(quant_files)
-  
-  txi <- tximport(files = quant_files, type = "salmon", txOut = TRUE, dropInfReps = TRUE)
-  counts <- txi$counts
-  
-  # get transcript id:
-  transcript_id = sapply(rownames(counts), function(x){
-    strsplit(x, "-")[[1]][[1]]
-  })
-  names(transcript_id) = NULL
-  
-  ############################################################
-  # FILTER LOWLY ABUNDANT TRANSCRIPTSa:
-  ############################################################
-  # keep transcripts with >= 10 counts per condition (across all samples):
-  counts_split = split(counts, transcript_id)
-  sel = sapply(counts_split, function(x){
-    # sel samples in group A:
-    sel_a = 1:6
-    (sum(x[sel_a]) >= 10) & (sum(x[-sel_a]) >= 10)
-  })
-  transcripts_kept = names(sel[sel])
-  length(transcripts_kept)
-  # 46647
-  
-  sel = transcript_id %in% transcripts_kept
-  counts = counts[sel,]
-  transcript_id = transcript_id[sel]
-  
-  ############################################################
-  # DRIMSeq:
-  ############################################################
-  
-  # Load truth table:
-  colnames(counts) = sample_names
-  group_names = rep(c("A", "B"), each = 3)
-  
-  design <- data.frame(sample_id = sample_names,
-                       group = group_names)
-  
-  # save transcripts as "gene_id"
-  counts_df = data.frame(counts, 
-                         gene_id = transcript_id,
-                         feature_id = rownames(counts))
-  
-  # Create a dmDSdata object
-  d <- dmDSdata(counts = counts_df, samples = design)
-  # with 46647 genes and 6 samples
-  
-  design_full <- model.matrix(~ group, data = samples(d))
-  design_full
-  
-  # infer the precision parameters:
-  d <- dmPrecision(d, genewise_precision = TRUE, 
-                   design = design_full)
-  
-  # We fit the model
-  # ?dmFit
-  d <- dmFit(d, design = design_full, 
-             verbose = 1)
-  
-  # We test the genes
-  # ?dmTest
-  d <- dmTest(d, coef = "groupB", verbose = 1)
-  
-  results_gene = results(d, level = "gene")
+    set.seed(169612)
+    
+    data_dir = file.path("1 - data", directories[type],
+                         "2_quants/salmon" )
+    
+    sample_names = paste0("sample", seq_len(6))
+    quant_files = file.path(data_dir, sample_names, "quant.sf")
+    file.exists(quant_files)
+    
+    txi <- tximport(files = quant_files, type = "salmon", txOut = TRUE, dropInfReps = TRUE)
+    counts <- txi$counts
+    
+    # get transcript id:
+    transcript_id = sapply(rownames(counts), function(x){
+      strsplit(x, "-")[[1]][[1]]
+    })
+    names(transcript_id) = NULL
+    
+    ############################################################
+    # FILTER LOWLY ABUNDANT TRANSCRIPTSa:
+    ############################################################
+    # keep transcripts with >= 10 counts per condition (across all samples):
+    counts_split = split(counts, transcript_id)
+    sel = sapply(counts_split, function(x){
+      # sel samples in group A:
+      sel_a = 1:6
+      (sum(x[sel_a]) >= 10) & (sum(x[-sel_a]) >= 10)
+    })
+    transcripts_kept = names(sel[sel])
+    length(transcripts_kept)
+    # 46647
+    
+    sel = transcript_id %in% transcripts_kept
+    counts = counts[sel,]
+    transcript_id = transcript_id[sel]
+    
+    ############################################################
+    # DRIMSeq:
+    ############################################################
+    
+    # Load truth table:
+    colnames(counts) = sample_names
+    group_names = rep(c("A", "B"), each = 3)
+    
+    design <- data.frame(sample_id = sample_names,
+                         group = group_names)
+    
+    # save transcripts as "gene_id"
+    counts_df = data.frame(counts, 
+                           gene_id = transcript_id,
+                           feature_id = rownames(counts))
+    
+    # Create a dmDSdata object
+    d <- dmDSdata(counts = counts_df, samples = design)
+    # with 46647 genes and 6 samples
+    
+    design_full <- model.matrix(~ group, data = samples(d))
+    design_full
+    
+    # infer the precision parameters:
+    d <- dmPrecision(d, genewise_precision = TRUE, 
+                     design = design_full)
+    
+    # We fit the model
+    # ?dmFit
+    d <- dmFit(d, design = design_full, 
+               verbose = 1)
+    
+    # We test the genes
+    # ?dmTest
+    d <- dmTest(d, coef = "groupB", verbose = 1)
+    
+    results_gene = results(d, level = "gene")
   }) 
   ############################################################
   # save results:

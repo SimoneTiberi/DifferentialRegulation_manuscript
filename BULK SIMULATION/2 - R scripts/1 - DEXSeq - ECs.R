@@ -70,6 +70,39 @@ sample1,sample2,sample3,sample4,sample5,sample6 \
 # user    1m58.065s
 # sys     0m11.426s
 
+############################################################
+# 'DR + DGE' logFC 6
+############################################################
+time python3 /home/Shared/simone/DifferentialRegulation/software/ec-dtu-pipe/create_salmon_ec_count_matrix.py \
+/home/Shared/simone/DifferentialRegulation/"1 - data"/de2000_ds0_dr2000_logFC_6/2_quants/salmon/sample1/aux_info/eq_classes.txt.gz \
+/home/Shared/simone/DifferentialRegulation/"1 - data"/de2000_ds0_dr2000_logFC_6/2_quants/salmon/sample2/aux_info/eq_classes.txt.gz \
+/home/Shared/simone/DifferentialRegulation/"1 - data"/de2000_ds0_dr2000_logFC_6/2_quants/salmon/sample3/aux_info/eq_classes.txt.gz \
+/home/Shared/simone/DifferentialRegulation/"1 - data"/de2000_ds0_dr2000_logFC_6/2_quants/salmon/sample4/aux_info/eq_classes.txt.gz \
+/home/Shared/simone/DifferentialRegulation/"1 - data"/de2000_ds0_dr2000_logFC_6/2_quants/salmon/sample5/aux_info/eq_classes.txt.gz \
+/home/Shared/simone/DifferentialRegulation/"1 - data"/de2000_ds0_dr2000_logFC_6/2_quants/salmon/sample6/aux_info/eq_classes.txt.gz \
+sample1,sample2,sample3,sample4,sample5,sample6 \
+/home/Shared/simone/DifferentialRegulation/"3 - results"/log2FC_6/ec_matrix.txt
+# real    2m15.050s
+# user    1m50.964s
+# sys     0m28.602s
+
+############################################################
+# 'DR + DGE' logFC 9
+############################################################
+time python3 /home/Shared/simone/DifferentialRegulation/software/ec-dtu-pipe/create_salmon_ec_count_matrix.py \
+/home/Shared/simone/DifferentialRegulation/"1 - data"/de2000_ds0_dr2000_logFC_9/2_quants/salmon/sample1/aux_info/eq_classes.txt.gz \
+/home/Shared/simone/DifferentialRegulation/"1 - data"/de2000_ds0_dr2000_logFC_9/2_quants/salmon/sample2/aux_info/eq_classes.txt.gz \
+/home/Shared/simone/DifferentialRegulation/"1 - data"/de2000_ds0_dr2000_logFC_9/2_quants/salmon/sample3/aux_info/eq_classes.txt.gz \
+/home/Shared/simone/DifferentialRegulation/"1 - data"/de2000_ds0_dr2000_logFC_9/2_quants/salmon/sample4/aux_info/eq_classes.txt.gz \
+/home/Shared/simone/DifferentialRegulation/"1 - data"/de2000_ds0_dr2000_logFC_9/2_quants/salmon/sample5/aux_info/eq_classes.txt.gz \
+/home/Shared/simone/DifferentialRegulation/"1 - data"/de2000_ds0_dr2000_logFC_9/2_quants/salmon/sample6/aux_info/eq_classes.txt.gz \
+sample1,sample2,sample3,sample4,sample5,sample6 \
+/home/Shared/simone/DifferentialRegulation/"3 - results"/log2FC_9/ec_matrix.txt
+# real    2m12.450s
+# user    1m51.001s
+# sys     0m27.776s
+
+
 ## in R:
 alias R='R_LIBS=/home/stiber/R/x86_64-pc-linux-gnu-library/4.3 /home/Shared/simone/DifferentialRegulation/software/R-4.3.0/bin/R'
 
@@ -86,12 +119,16 @@ setwd("/home/Shared/simone/DifferentialRegulation")
 directories = c("de0_ds0_dr0",
                 "de0_ds0_dr2000",
                 "de2000_ds0_dr2000",
-                "de0_ds2000_dr2000")
+                "de0_ds2000_dr2000",
+                "de2000_ds0_dr2000_logFC_6",
+                "de2000_ds0_dr2000_logFC_9")
 
 directories_results = c("NULL",
                         "DR",
                         "DR + DGE",
-                        "DR + DAS")
+                        "DR + DAS",
+                        "log2FC_6",
+                        "log2FC_9")
 
 ############################################################
 # load data:
@@ -103,7 +140,7 @@ library(DEXSeq)
 library(DRIMSeq)
 
 TIME = list()
-for(type in 1:4){
+for(type in 1:6){
   TIME[[type]] = system.time({
     set.seed(169612)
     

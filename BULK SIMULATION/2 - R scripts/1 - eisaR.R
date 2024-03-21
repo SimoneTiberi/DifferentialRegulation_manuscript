@@ -1,10 +1,5 @@
 alias R='R_LIBS=/home/stiber/R/x86_64-pc-linux-gnu-library/4.3 /home/Shared/simone/DifferentialRegulation/software/R-4.3.0/bin/R'
 
-#BiocManager::install("Rbowtie")
-#BiocManager::install("ShortRead")
-#BiocManager::install("GenomicFiles")
-# install_github("cran/deldir")
-
 cd /home/Shared/simone/DifferentialRegulation
 
 R
@@ -18,12 +13,16 @@ setwd("/home/Shared/simone/DifferentialRegulation")
 directories = c("de0_ds0_dr0",
                 "de0_ds0_dr2000",
                 "de2000_ds0_dr2000",
-                "de0_ds2000_dr2000")
+                "de0_ds2000_dr2000",
+                "de2000_ds0_dr2000_logFC_6",
+                "de2000_ds0_dr2000_logFC_9")
 
 directories_results = c("NULL",
                         "DR",
                         "DR + DGE",
-                        "DR + DAS")
+                        "DR + DAS",
+                        "log2FC_6",
+                        "log2FC_9")
 
 ############################################################
 # load data:
@@ -33,7 +32,7 @@ directories_results = c("NULL",
 library(eisaR)
 library(tximport)
 TIME = list()
-for(type in 1:4){
+for(type in 1:6){
   TIME[[type]] = system.time({
     data_dir = file.path("1 - data", directories[type],
                          "2_quants/salmon" )

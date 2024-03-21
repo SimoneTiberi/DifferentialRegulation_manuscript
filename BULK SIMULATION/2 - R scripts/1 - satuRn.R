@@ -12,12 +12,16 @@ rm(list =ls())
 directories = c("de0_ds0_dr0",
                 "de0_ds0_dr2000",
                 "de2000_ds0_dr2000",
-                "de0_ds2000_dr2000")
+                "de0_ds2000_dr2000",
+                "de2000_ds0_dr2000_logFC_6",
+                "de2000_ds0_dr2000_logFC_9")
 
 directories_results = c("NULL",
                         "DR",
                         "DR + DGE",
-                        "DR + DAS")
+                        "DR + DAS",
+                        "log2FC_6",
+                        "log2FC_9")
 
 setwd("/home/Shared/simone/DifferentialRegulation")
 ############################################################
@@ -26,7 +30,9 @@ setwd("/home/Shared/simone/DifferentialRegulation")
 TIME = list()
 library(satuRn)
 library(tximport)
-for(type in 1:4){
+library(SummarizedExperiment)
+
+for(type in 1:6){
   TIME[[type]] = system.time({
     set.seed(169612)
     data_dir = file.path("1 - data", directories[type],
