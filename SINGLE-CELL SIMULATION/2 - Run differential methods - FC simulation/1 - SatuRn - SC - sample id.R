@@ -17,15 +17,15 @@ min_counts_per_group = 10
 
 clusters = c("Adipocytes", "Epithelial_cells", "Hepatocytes")
 
-for(DGE in c(FALSE, TRUE)){
-
-  TIMES = list()  
+for(FC in c(6, 9)){
   
-  if(DGE){
-    data_dir = "simulation_DGE"
+  if(FC == 6){
+    data_dir = "simulation_FC6"
   }else{
-    data_dir = "simulation"
+    data_dir = "simulation_FC9"
   }
+  
+  TIMES = list()  
   
   DF_SatuRn = list()
   
@@ -72,6 +72,7 @@ for(DGE in c(FALSE, TRUE)){
         SUA[[i]] = cbind(S, U, A)
       }
       x = do.call(cbind, SUA)
+      rm(sce_one_sample)
       
       # start PI_counts from relative counts estimates
       # start PI_SU from 50:50 or relative abundance from SU counts estimates
@@ -85,60 +86,12 @@ for(DGE in c(FALSE, TRUE)){
       n_genes = length(sel_genes)
       sum(sel)
       
-      x = x[sel,]
-      dim(x)
-      S = x[, seq(1, length.out = n_samples, by = 3) ]
-      U = x[, seq(2, length.out = n_samples, by = 3) ]
-      A = x[, seq(3, length.out = n_samples, by = 3) ]
-      head(S, 20); head(U, 20); head(A, 20)
-      colSums(S);
-      colSums(U);
-      colSums(A);
+      # filter transcripts based on sel
+      sce = sce[sel,]
       
-      SUA = rbind(S, U, A)
-      dim(SUA); colSums(SUA)
-      
-      # prepare design matrix
-      design <- data.frame(condition = factor(group))
-      spliced_unspliced_ambiguous <- factor(c(rep("S", n_genes), rep("U", n_genes),  rep("A", n_genes)))
-      n_samples = nlevels(sce$sample_id); n_samples
-      
-      SUA = list()
-      for(i in 1:n_samples){
-        sel_cells = sce$sample_id == levels(sce$sample_id)[i]
-        sce_one_sample = sce[, sel_cells]
-        S = rowSums(assays(sce_one_sample)$spliced)
-        U = rowSums(assays(sce_one_sample)$unspliced)
-        A = rowSums(assays(sce_one_sample)$ambiguous)
-        
-        SUA[[i]] = cbind(S, U, A)
-      }
-      x = do.call(cbind, SUA)
-      
-      # start PI_counts from relative counts estimates
-      # start PI_SU from 50:50 or relative abundance from SU counts estimates
-      genes = rownames(sce)
-      n_genes = length(genes)
-      
-      group = factor(c("A", "B", "A", "B"))
-      sel_A = c(1:3, 7:9) # select columns of group A
-      sel = (rowSums(x[,sel_A]) >= min_counts_per_group) & (rowSums(x[,-sel_A]) >= min_counts_per_group)
-      sel_genes = genes[sel]
-      n_genes = length(sel_genes)
-      sum(sel)
-      
-      x = x[sel,]
-      dim(x)
-      S = x[, seq(1, length.out = n_samples, by = 3) ]
-      U = x[, seq(2, length.out = n_samples, by = 3) ]
-      A = x[, seq(3, length.out = n_samples, by = 3) ]
-      head(S, 20); head(U, 20); head(A, 20)
-      colSums(S);
-      colSums(U);
-      colSums(A);
-      
-      SUA = rbind(S, U, A)
-      dim(SUA); colSums(SUA)
+      SUA = rbind(as.matrix(assays(sce)$spliced),
+                  as.matrix(assays(sce)$unspliced),
+                  as.matrix(assays(sce)$ambiguous))
       
       # prepare design matrix
       design <- data.frame(condition = factor(group))
@@ -151,11 +104,10 @@ for(DGE in c(FALSE, TRUE)){
       # satuRn:
       ############################################################
       # Load truth table:
-      colnames(SUA) = sample_ids
-      
-      design <- data.frame(row.names = sample_ids,
-                           sample_id = sample_ids,
-                           group = group)
+      # colnames(SUA) = sample_ids
+      design <- data.frame(row.names = colnames(SUA),
+                           sample_id = sce$sample_id,
+                           group = sce$group)
       
       # the columns with transcript identifiers is names isoform_id, 
       # while the column containing gene identifiers should be named gene_id
@@ -170,14 +122,16 @@ for(DGE in c(FALSE, TRUE)){
       )
       
       # for sake of completeness: specify design formula from colData
-      metadata(sumExp)$formula <- ~ 0 + as.factor(colData(sumExp)$group)
+      metadata(sumExp)$formula <- ~ 0 + 
+        as.factor(colData(sumExp)$group) +
+        as.factor(colData(sumExp)$sample_id)
       sumExp
       
       # We fit the model
       # ?satuRn::fitDTU
       sumExp <- satuRn::fitDTU(
         object = sumExp,
-        formula = ~ 0 + group,
+        formula = ~ 0 + group + sample_id,
         parallel = FALSE,
         BPPARAM = MulticoreParam(1),
         verbose = TRUE
@@ -185,8 +139,9 @@ for(DGE in c(FALSE, TRUE)){
       
       # construct design matrix
       group <- as.factor(design$group)
-      design_full <- model.matrix(~ 0 + group)
-      colnames(design_full) <- levels(group)
+      sample_id = as.factor(design$sample_id)
+      design_full <- model.matrix(~ 0 + group + sample_id)
+      colnames(design_full)[1:2] <- levels(group)
       
       # initialize contrast matrix
       L <- limma::makeContrasts(
@@ -213,15 +168,15 @@ for(DGE in c(FALSE, TRUE)){
     # save results:
     ############################################################
   }
-
-  if(DGE){
-    name = paste0("results_DGE_SatuRn.RData")
+  
+  if(FC == 6){
+    name = paste0("results_FC6_SatuRnSCsampleDesign.RData")
   }else{
-    name = paste0("results_NO_DGE_SatuRn.RData")
+    name = paste0("results_FC9_SatuRnSCsampleDesign.RData")
   }
+  
   
   full_name = file.path("../07_results", name)
   
   save(DF_SatuRn, TIMES, file = full_name)
 }
-  

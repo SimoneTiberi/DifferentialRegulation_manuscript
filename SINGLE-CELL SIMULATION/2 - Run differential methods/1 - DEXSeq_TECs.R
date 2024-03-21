@@ -17,9 +17,8 @@ min_counts_per_group = 10
 
 clusters = c("Adipocytes", "Epithelial_cells", "Hepatocytes")
 
-#for(DGE in c(FALSE,TRUE)){
-for(DGE in c(TRUE)){
-  
+for(DGE in c(FALSE,TRUE)){
+
   TIMES = list()  
   
   if(DGE){

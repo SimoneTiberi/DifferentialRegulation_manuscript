@@ -6,7 +6,8 @@ all_colours = c(
   "#1f2eb4", # DifferentialRegulation_Wald
   "#66A61E", # "DRIMSeq"
   "#A6761D",  # eisaR
-  "#404040" # "satuRn"
+  "#404040", # "satuRn"
+  "darkgrey" # "satuRn_SC"
 )
 
 methods_all = c(
@@ -16,7 +17,8 @@ methods_all = c(
   "DifferentialRegulation_Wald",
   "DRIMSeq",
   "eisaR",
-  "satuRn"
+  "satuRn",
+  "satuRn_SC"
 )
 
 colors_method = all_colours

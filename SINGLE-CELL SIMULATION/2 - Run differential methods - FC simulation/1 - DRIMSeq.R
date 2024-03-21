@@ -17,14 +17,15 @@ min_counts_per_group = 10
 
 clusters = c("Adipocytes", "Epithelial_cells", "Hepatocytes")
 
-for(DGE in c(FALSE,TRUE)){
-  TIMES = list()  
+for(FC in c(6, 9)){
   
-  if(DGE){
-    data_dir = "simulation_DGE"
+  if(FC == 6){
+    data_dir = "simulation_FC6"
   }else{
-    data_dir = "simulation"
+    data_dir = "simulation_FC9"
   }
+  
+  TIMES = list()
   
   DF_DRIMSeq = list()
   
@@ -143,10 +144,10 @@ for(DGE in c(FALSE,TRUE)){
   }
   DF_DRIMSeq = do.call(rbind, DF_DRIMSeq)
   
-  if(DGE){
-    name = paste0("results_DGE_DRIMSeq.RData")
+  if(FC == 6){
+    name = paste0("results_FC6_DRIMSeq.RData")
   }else{
-    name = paste0("results_NO_DGE_DRIMSeq.RData")
+    name = paste0("results_FC9_DRIMSeq.RData")
   }
   
   full_name = file.path("../07_results", name)

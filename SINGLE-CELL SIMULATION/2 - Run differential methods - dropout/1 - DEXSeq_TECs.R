@@ -6,7 +6,7 @@ R
 rm(list = ls())
 
 library(DifferentialRegulation)
-library(DRIMSeq)
+library(DEXSeq)
 library(SingleCellExperiment)
 library(BiocParallel)
 
@@ -17,16 +17,16 @@ min_counts_per_group = 10
 
 clusters = c("Adipocytes", "Epithelial_cells", "Hepatocytes")
 
-for(DGE in c(FALSE,TRUE)){
+for(drop in c(95, 99)){
   TIMES = list()  
   
-  if(DGE){
-    data_dir = "simulation_DGE"
+  if(drop == 95){
+    data_dir = "simulation_drop95"
   }else{
-    data_dir = "simulation"
+    data_dir = "simulation_drop99"
   }
   
-  DF_DRIMSeq = list()
+  DF_DEXSeq = list()
   
   for(cl in seq_along(clusters)){
     
@@ -41,10 +41,14 @@ for(DGE in c(FALSE,TRUE)){
       path_to_counts = file.path(base_dir,"/alevin/quants_mat.mtx")
       path_to_cell_id = file.path(base_dir,"/alevin/quants_mat_rows.txt")
       path_to_gene_id = file.path(base_dir,"/alevin/quants_mat_cols.txt")
+      path_to_EC_counts = file.path(base_dir,"/alevin/geqc_counts.mtx")
+      path_to_EC = file.path(base_dir,"/alevin/gene_eqclass.txt.gz")
       
       file.exists(path_to_counts)
       file.exists(path_to_cell_id)
       file.exists(path_to_gene_id)
+      file.exists(path_to_EC_counts)
+      file.exists(path_to_EC)
       
       # load USA counts:
       sce = load_USA(path_to_counts,
@@ -95,62 +99,41 @@ for(DGE in c(FALSE,TRUE)){
       design <- data.frame(condition = factor(group))
       spliced_unspliced_ambiguous <- factor(c(rep("S", n_genes), rep("U", n_genes),  rep("A", n_genes)))
       
-      rownames(SUA) = paste( rep(sel_genes, 3),
-                             spliced_unspliced_ambiguous,
-                             sep  = "-")
-      ############################################################
-      # DRIMSeq:
-      ############################################################
-      # Load truth table:
-      colnames(SUA) = sample_ids
+      # set parallel cores:
+      #library(BiocParallel)
+      #BPPARAM = MulticoreParam(6)
       
-      design <- data.frame(sample_id = sample_ids,
-                           group = group)
+      # analyze each cluster separately:
+      dxd <- DEXSeqDataSet(countData = round(SUA),
+                           sampleData = design,
+                           design = ~sample + exon + condition:exon,
+                           featureID = spliced_unspliced_ambiguous,
+                           groupID = rep(sel_genes, 3))
       
-      # save transcripts as "gene_id"
-      counts_df = data.frame(SUA, 
-                             gene_id = rep(sel_genes, 3),
-                             feature_id = rownames(SUA))
+      dxd <- estimateSizeFactors(dxd)
+      dxd <- estimateDispersions(dxd) #, BPPARAM = BPPARAM)
+      dxd <- testForDEU(dxd, reducedModel = ~sample + exon) #, BPPARAM = BPPARAM)
       
-      # Create a dmDSdata object
-      d <- dmDSdata(counts = counts_df, samples = design)
-      # with 46647 genes and 6 samples
+      dxr <- DEXSeqResults(dxd, independentFiltering = FALSE)
       
-      design_full <- model.matrix(~ group, data = DRIMSeq::samples(d))
-      design_full
+      gene_q_val = perGeneQValue(dxr)
       
-      # infer the precision parameters:
-      d <- dmPrecision(d, genewise_precision = TRUE, 
-                       design = design_full)
+      print(head(gene_q_val))
       
-      # We fit the model
-      # ?dmFit
-      d <- dmFit(d, design = design_full, 
-                 verbose = 1)
-      
-      # We test the genes
-      # ?dmTest
-      d <- dmTest(d, coef = "groupB", verbose = 1)
-      
-      results_gene = results(d, level = "gene")
-      
-      # initialize results data frame
-      DF_DRIMSeq[[cl]] <- data.frame(Gene_id = results_gene$gene_id,
-                                     Cluster_id = cluster,
-                                     p_DRIMSeq = results_gene$pvalue,
-                                     p_DRIMSeq_adj = results_gene$adj_pvalue)
+      DF_DEXSeq[[cl]] = data.frame(qval = gene_q_val, gene_id = names(gene_q_val), cluster_id = clusters[cl])
     })
   }
-  DF_DRIMSeq = do.call(rbind, DF_DRIMSeq)
   
-  if(DGE){
-    name = paste0("results_DGE_DRIMSeq.RData")
+  DF_DEXSeq = do.call(rbind, DF_DEXSeq)
+  
+  if(drop == 95){
+    name = paste0("results_drop95_DEXSeq_USA.RData")
   }else{
-    name = paste0("results_NO_DGE_DRIMSeq.RData")
+    name = paste0("results_drop99_DEXSeq_USA.RData")
   }
   
   full_name = file.path("../07_results", name)
   
-  save(DF_DRIMSeq, TIMES, file = full_name)
+  save(DF_DEXSeq, TIMES, file = full_name)
 }
 

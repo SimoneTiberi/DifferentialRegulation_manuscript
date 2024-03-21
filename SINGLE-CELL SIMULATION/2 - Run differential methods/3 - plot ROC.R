@@ -1,8 +1,8 @@
-alias R='R_LIBS=/home/stiber/R/x86_64-pc-linux-gnu-library/4.3 /home/Shared/simone/DifferentialRegulation/software/R-4.3.0/bin/R'
+#alias R='R_LIBS=/home/stiber/R/x86_64-pc-linux-gnu-library/4.3 /home/Shared/simone/DifferentialRegulation/software/R-4.3.0/bin/R'
 
-cd /home/Shared/simone/Diff_Velo/NEW_simulation
+#cd /home/Shared/simone/Diff_Velo/NEW_simulation
 
-R
+#R
 rm(list = ls())
 
 setwd("~/Desktop/Differential Velocity/FINAL SCRIPTS/SINGLE-CELL SIMULATION")
@@ -216,6 +216,44 @@ for(DGE in c(FALSE, TRUE)){
   rm(min_p_val); rm(tr_names); rm(res)
   
   #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+  # satuRn SINGLE-CELL DATA
+  #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
+  if(DGE){
+    load("07_results/results_DGE_SatuRnSCsampleDesign.RData")
+  }else{
+    load("07_results/results_NO_DGE_SatuRnSCsampleDesign.RData")
+  }
+  
+  clusters = c("Adipocytes", "Epithelial_cells", "Hepatocytes")
+  
+  satuRn = list()
+  for(cl in 1:3){
+    res = DF_SatuRn[[cl]]
+    tr_names = res$transcript_id
+    tr_names = strsplit(tr_names, "-")
+    tr_names = sapply(tr_names, function(x){ x[[1]]})
+    
+    res$empirical_pval[is.na(res$empirical_pval)] = 1
+    res_by_tr = split(res$empirical_pval, tr_names)
+    min_p_val = sapply(res_by_tr, min, na.rm = TRUE)
+    
+    qval = p.adjust(min_p_val, method = "BH")
+    
+    satuRn[[cl]] = data.frame(gene_id = names(min_p_val),
+                              cluster_id =  clusters[cl],
+                              satuRn_SC = min_p_val,
+                              satuRn_SC_FDR = qval) 
+  }
+  satuRn = do.call(rbind, satuRn)
+  
+  DF_merged = merge(DF_merged, satuRn, by = c("gene_id", "cluster_id"), all.x = TRUE)
+  head(DF_merged)
+  tail(DF_merged)
+  
+  rm(satuRn); rm(DF_SatuRn); rm(qval);
+  rm(min_p_val); rm(tr_names); rm(res)
+  
+  #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
   # iCOBRA:
   #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### 
   DF_merged[is.na(DF_merged)] = 1
@@ -245,7 +283,8 @@ for(DGE in c(FALSE, TRUE)){
     DifferentialRegulation_Wald = DF_merged$DifferentialRegulation_p_val,
     DRIMSeq = DF_merged$DRIMSeq,
     eisaR = DF_merged$eisaR,
-    satuRn = DF_merged$satuRn
+    satuRn = DF_merged$satuRn,
+    satuRn_SC = DF_merged$satuRn_SC
   )
   
   # AUC calculation:
@@ -272,7 +311,8 @@ for(DGE in c(FALSE, TRUE)){
         DifferentialRegulation_Wald = DF_sel$DifferentialRegulation_p_val,
         DRIMSeq = DF_sel$DRIMSeq,
         eisaR = DF_sel$eisaR,
-        satuRn = DF_sel$satuRn
+        satuRn = DF_sel$satuRn,
+        satuRn_SC = DF_sel$satuRn_SC
       ),
       truth = data.frame(status = DF_sel$truth))
     
@@ -369,41 +409,6 @@ for(DGE in c(FALSE, TRUE)){
          units = "in",
          dpi = 300,
          limitsize = TRUE)
-}
-
-# AUC
-A = do.call(rbind, AUC)
-overall = colMeans(A)
-
-A = A[,order(overall)]
-if(FALSE){
-  library(xtable)
-  xtable(A, digits =3)
-  \begin{table}[ht]
-  \centering
-  \begin{tabular}{rrrrrrrr}
-  \hline
-  & BRIE2 & DRIMSeq & DifferentialRegulation & DifferentialRegulation\_Wald & satuRn & eisaR & DEXSeq \\ 
-  \hline
-  1 & 0.568 & 0.593 & 0.770 & 0.770 & 0.777 & 0.774 & 0.791 \\ 
-  2 & 0.563 & 0.597 & 0.763 & 0.764 & 0.764 & 0.768 & 0.786\\ 
-  \hline
-  \end{tabular}
-  \end{table}
-  
-  library(xtable)
-  xtable(A, digits =2)
-  \begin{table}[ht]
-  \centering
-  \begin{tabular}{rrrrrrrr}
-  \hline
-  & BRIE2 & DRIMSeq & DifferentialRegulation & DifferentialRegulation\_Wald & satuRn & eisaR & DEXSeq \\ 
-  \hline
-  1 & 0.57 & 0.59 & 0.77 & 0.77 & 0.78 & 0.77 & 0.79 \\ 
-  2 & 0.56 & 0.60 & 0.76 & 0.76 & 0.76 & 0.77 & 0.79 \\ 
-  \hline
-  \end{tabular}
-  \end{table}
 }
 
 my_theme2 = theme(legend.position = "none", 
@@ -553,3 +558,38 @@ ggsave(filename = paste0('2_ROC_2_topN_sc.pdf'),
        units = "in",
        dpi = 300,
        limitsize = TRUE)
+
+
+# AUC
+A = do.call(rbind, AUC)
+overall = colMeans(A)
+
+A = A[,order(overall)]
+# library(xtable)
+# xtable(A, digits =3)
+# \begin{table}[ht]
+# \centering
+# \begin{tabular}{rrrrrrrrr}
+# \hline
+# & BRIE2 & DRIMSeq & satuRn\_SC & DifferentialRegulation & DifferentialRegulation\_Wald & satuRn & eisaR & DEXSeq\_TECs \\ 
+# \hline
+# 1 & 0.568 & 0.593 & 0.789 & 0.770 & 0.770 & 0.777 & 0.774 & 0.791 \\ 
+# 2 & 0.563 & 0.597 & 0.710 & 0.763 & 0.764 & 0.764 & 0.768 & 0.786 \\ 
+# \hline
+# \end{tabular}
+# \end{table}
+# 
+# library(xtable)
+# xtable(A, digits =2)
+# \begin{table}[ht]
+# \centering
+# \begin{tabular}{rrrrrrrrr}
+# \hline
+# & BRIE2 & DRIMSeq & satuRn\_SC & DifferentialRegulation & DifferentialRegulation\_Wald & satuRn & eisaR & DEXSeq\_TECs \\ 
+# \hline
+# 1 & 0.57 & 0.59 & 0.74 & 0.77 & 0.77 & 0.78 & 0.77 & 0.79 \\ 
+# 2 & 0.56 & 0.60 & 0.68 & 0.76 & 0.76 & 0.76 & 0.77 & 0.79 \\ 
+# \hline
+# \end{tabular}
+# \end{table}
+

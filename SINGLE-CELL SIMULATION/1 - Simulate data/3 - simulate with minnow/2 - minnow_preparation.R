@@ -15,9 +15,23 @@ suppressPackageStartupMessages({
 # prepare for minnow simulation
 sim_dir <- "/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/04_simulation_minnow/simulation/"
 sim_dir_DGE <- "/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/04_simulation_minnow/simulation_DGE/"
+sim_dir_FC6 <- "/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/04_simulation_minnow/simulation_FC6/"
+sim_dir_FC9 <- "/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/04_simulation_minnow/simulation_FC9/"
+sim_dir_NULL <- "/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/04_simulation_minnow/simulation_NULL/"
+sim_dir_drop90 <- "/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/04_simulation_minnow/simulation_drop90/"
+sim_dir_drop95 <- "/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/04_simulation_minnow/simulation_drop95/"
+sim_dir_drop99 <- "/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/04_simulation_minnow/simulation_drop99/"
+sim_dir_batch <- "/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/04_simulation_minnow/simulation_batch/"
 
 sce <- readRDS("/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/03_data/mouse_simulation_data-ALEVIN.rds")
 sce_DGE <- readRDS("/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/03_data/mouse_simulation_DGE_data-ALEVIN.rds")
+sce_FC6 <- readRDS("/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/03_data/mouse_simulation_DGE_FC6_data-ALEVIN.rds")
+sce_FC9 <- readRDS("/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/03_data/mouse_simulation_DGE_FC9_data-ALEVIN.rds")
+sce_NULL <- readRDS("/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/03_data/mouse_simulation_data-NULL-ALEVIN.rds")
+sce_drop95 <- readRDS("/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/03_data/mouse_simulation_data-ALEVIN-dropout95.rds")
+sce_drop99 <- readRDS("/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/03_data/mouse_simulation_data-ALEVIN-dropout99.rds")
+sce_drop90 <- readRDS("/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/03_data/mouse_simulation_data-ALEVIN-dropout90.rds")
+sce_batch <- readRDS("/home/Shared_sherborne/simone/Diff_Velo/NEW_simulation/03_data/mouse_simulation_batch_data-ALEVIN.rds")
 
 cell_types <- c("Adipocytes", "Epithelial cells", "Hepatocytes")
 
@@ -53,3 +67,10 @@ prepare_minnow <- function (sce, sim_dir) {
 
 prepare_minnow(sce, sim_dir)
 prepare_minnow(sce_DGE, sim_dir_DGE)
+prepare_minnow(sce_FC6, sim_dir_FC6)
+prepare_minnow(sce_FC9, sim_dir_FC9)
+prepare_minnow(sce_NULL, sim_dir_NULL)
+prepare_minnow(sce_drop95, sim_dir_drop95)
+prepare_minnow(sce_drop99, sim_dir_drop99)
+prepare_minnow(sce_drop90, sim_dir_drop90)
+prepare_minnow(sce_batch, sim_dir_batch)

@@ -66,7 +66,8 @@ mouse_simulation <- function (sce, CLUSTERS,
 }
 
 add_DGE <- function (sce, CLUSTERS,  
-                     p_genes_DGE) {
+                     p_genes_DGE,
+                     mu_FC = 3) {
   # store truth from first simulation
   truth_DA <- metadata(sce)$truth
   metadata(sce)$truth <- NULL
@@ -97,8 +98,8 @@ add_DGE <- function (sce, CLUSTERS,
       sel_gene = which(rownames(temp) == gene)
       
       # simulate a random FC, with mean 3 and variance 1:
-      FC = 2 + rexp(1, rate = 1)
-
+      FC = mu_FC - 1 + rexp(1, rate = 1)
+      
       # store FC in truth matrix:
       truth$FC[sel_gene] = FC 
       
@@ -110,10 +111,57 @@ add_DGE <- function (sce, CLUSTERS,
     TRUTH[[i]] = truth
     print(i)
   }
-
+  
   SCE <- do.call("cbind", SCES)
   truth_DGE <- do.call("rbind", TRUTH)
   metadata(SCE)$truth <- merge(truth_DA, truth_DGE, by = c("Gene_id", "Cell_type"), all.x = TRUE)
+  
+  return(SCE)
+}
+
+# simulation of mouse data
+add_batch <- function (sce, CLUSTERS) {
+  # store truth from first simulation
+  truth_DA <- metadata(sce)$truth
+  
+  SCES = list()
+  TRUTH = list()
+  for(i in 1:length(CLUSTERS)){
+    # select cluster
+    temp <- sce[, sce$cell_type == CLUSTERS[[i]]]
+    
+    # as many genes DR btw batches, as there are btw conditions:
+    truth = metadata(temp)$truth$truth[metadata(temp)$truth$Cell_type == CLUSTERS[[i]] ]
+    n_genes_batch = sum(truth)
+    
+    # randomly draw proportion of genes and store ground truth
+    genes <- sample(rownames(temp), size = n_genes_batch, replace = FALSE)
+    truth <- data.frame(Gene_id = rownames(temp), Cell_type = CLUSTERS[[i]],
+                        truth_batch = ifelse(rownames(temp) %in% genes, 1, 0) )
+
+    for(gene in genes){
+      # sample the group to swap (50:50 prob for the 2 groups):
+      if(rbinom(1,1,0.5) == 1){
+        sel_cells = temp$batch == "1"
+      }else{
+        sel_cells = temp$batch == "2"
+      }
+      sel_gene = which(rownames(temp) == gene)
+      
+      # swap S and U counts:
+      spliced = assays(temp)$spliced[sel_gene, sel_cells]
+      unspliced = assays(temp)$unspliced[sel_gene, sel_cells]
+      assays(temp)$spliced[sel_gene, sel_cells] = unspliced
+      assays(temp)$unspliced[sel_gene, sel_cells] = spliced
+    }
+    SCES[[i]] = temp
+    TRUTH[[i]] = truth
+    print(i)
+  }
+  
+  SCE <- do.call("cbind", SCES)
+  truth_batch <- do.call("rbind", TRUTH)
+  metadata(SCE)$truth <- merge(truth_DA, truth_batch, by = c("Gene_id", "Cell_type"), all.x = TRUE)
   
   return(SCE)
 }

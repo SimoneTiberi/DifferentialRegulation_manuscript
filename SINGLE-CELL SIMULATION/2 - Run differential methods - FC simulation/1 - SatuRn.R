@@ -17,15 +17,15 @@ min_counts_per_group = 10
 
 clusters = c("Adipocytes", "Epithelial_cells", "Hepatocytes")
 
-for(DGE in c(FALSE, TRUE)){
-
-  TIMES = list()  
+for(FC in c(6, 9)){
   
-  if(DGE){
-    data_dir = "simulation_DGE"
+  if(FC == 6){
+    data_dir = "simulation_FC6"
   }else{
-    data_dir = "simulation"
+    data_dir = "simulation_FC9"
   }
+  
+  TIMES = list()  
   
   DF_SatuRn = list()
   
@@ -174,7 +174,7 @@ for(DGE in c(FALSE, TRUE)){
       sumExp
       
       # We fit the model
-      # ?satuRn::fitDTU
+      set.seed(12345)
       sumExp <- satuRn::fitDTU(
         object = sumExp,
         formula = ~ 0 + group,
@@ -196,7 +196,7 @@ for(DGE in c(FALSE, TRUE)){
       
       # We test the genes
       # ?satuRn::testDTU
-      set.seed(169612)
+      
       sumExp <- satuRn::testDTU(
         object = sumExp,
         contrasts = L,
@@ -214,10 +214,10 @@ for(DGE in c(FALSE, TRUE)){
     ############################################################
   }
 
-  if(DGE){
-    name = paste0("results_DGE_SatuRn.RData")
+  if(FC == 6){
+    name = paste0("results_FC6_SatuRn.RData")
   }else{
-    name = paste0("results_NO_DGE_SatuRn.RData")
+    name = paste0("results_FC9_SatuRn.RData")
   }
   
   full_name = file.path("../07_results", name)
